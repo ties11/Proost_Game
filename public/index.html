@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proost!</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">P</div>
+          <div class="brandText">
+            <div class="title">Proost!</div>
+            <div class="subtitle">Multiplayer party game</div>
+          </div>
+        </div>
+        <div class="status" id="statusText">Niet verbonden</div>
+      </header>
+
+      <section id="loginScreen" class="screen">
+        <div class="card">
+          <h1 class="h1">Proost!</h1>
+          <p class="muted">Voer een kamercode in en join je vrienden.</p>
+
+          <label class="field">
+            <span class="label">Kamercode</span>
+            <input
+              id="roomCodeInput"
+              class="input"
+              inputmode="text"
+              autocomplete="off"
+              placeholder="Bijv. ABC123"
+              maxlength="10"
+            />
+          </label>
+
+          <label class="field">
+            <span class="label">Jouw Naam</span>
+            <input
+              id="playerNameInput"
+              class="input"
+              inputmode="text"
+              autocomplete="name"
+              placeholder="Bijv. Ties"
+              maxlength="32"
+            />
+          </label>
+
+          <button id="joinBtn" class="btn btnPrimary btnBig">Join Game</button>
+          <div id="loginError" class="error" role="alert" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="gameScreen" class="screen hidden">
+        <div class="gameWrap">
+          <section id="king-status" class="kingStatus" aria-live="polite">
+            <div class="kingRow">
+              <div class="kingLabel">Koning</div>
+              <div class="kingValue" id="kingName">—</div>
+            </div>
+            <div class="kingRule">
+              <div class="kingLabel">Huidige Regel</div>
+              <div class="kingRuleText" id="kingRule">Geen</div>
+            </div>
+          </section>
+
+          <details id="leaderboard" class="leaderboard" open>
+            <summary class="leaderboardSummary">
+              <span class="leaderboardTitle">Ranglijst</span>
+              <span class="leaderboardHint">Koning van de avond 👑</span>
+            </summary>
+            <ol id="leaderboardList" class="leaderboardList"></ol>
+          </details>
+
+          <div class="playersCard">
+            <div class="playersHeader">
+              <div class="playersTitle">In de kamer</div>
+              <div class="pill" id="roomPill">—</div>
+            </div>
+            <ul id="playersList" class="playersList"></ul>
+          </div>
+
+          <div id="card-section" class="opdrachtCard">
+            <div class="opdrachtLabel">Huidige Opdracht</div>
+            <div id="opdrachtText" class="opdrachtText">
+              Klik op “Volgende Kaart” om te beginnen.
+            </div>
+          </div>
+
+          <div id="voting-section" class="minigame hidden">
+            <div class="minigameCard">
+              <div class="minigameTitle">Stemronde</div>
+              <div id="voteQuestion" class="minigameQuestion">—</div>
+              <div id="voteButtons" class="voteButtons"></div>
+              <div id="voteStatus" class="muted small"></div>
+            </div>
+          </div>
+
+          <div id="reaction-section" class="minigame hidden reactionWrap">
+            <div class="reactionCard">
+              <div class="reactionTitle">REFLEX!</div>
+              <div class="reactionSub">Als je dit ziet: druk zo snel mogelijk.</div>
+              <button id="reactionBtn" class="reactionBtn">DRUK NU!</button>
+              <div id="reactionStatus" class="reactionStatus"></div>
+            </div>
+          </div>
+
+          <div id="fast-fingers-section" class="minigame hidden fastFingersWrap">
+            <div class="fastFingersCard">
+              <div class="fastFingersTitle">FAST FINGERS</div>
+              <div class="fastFingersSub">Tik 15 keer zo snel mogelijk.</div>
+              <button id="fastFingersBtn" class="fastFingersBtn">TIK!</button>
+              <div id="fastFingersCount" class="fastFingersCount">0/15</div>
+              <div id="fastFingersStatus" class="muted small"></div>
+            </div>
+          </div>
+
+          <div id="stopwatch-section" class="minigame hidden stopwatchWrap">
+            <div class="stopwatchCard">
+              <div class="stopwatchTitle">STOPWATCH</div>
+              <div id="stopwatchTarget" class="stopwatchSub">Doel: 8.00s</div>
+              <div id="stopwatchDisplay" class="stopwatchDisplay">0.00</div>
+              <button id="stopwatchBtn" class="stopwatchBtn">STOP</button>
+              <div id="stopwatchStatus" class="muted small"></div>
+            </div>
+          </div>
+
+          <button id="nextBtn" class="btn btnNeon btnHuge">Volgende Kaart</button>
+
+          <div id="gameError" class="error" role="alert" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+    <div id="kingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="kingModalTitle">
+      <div class="modalCard">
+        <div class="modalTitle" id="kingModalTitle">👑 Jij bent de Koning!</div>
+        <div class="modalText">Verzin een regel die geldt tot de volgende koning.</div>
+        <input id="ruleInput" class="input" placeholder="Bijv. Alleen praten in vragen…" maxlength="140" />
+        <button id="setRuleBtn" class="btn btnPrimary btnBig">Stel Regel In</button>
+        <button id="closeKingModalBtn" class="btn btnBig btnGhost">Later</button>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./client.js"></script>
+  </body>
+</html>
+
