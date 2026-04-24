@@ -163,12 +163,20 @@ button:active:not(:disabled){
 }
 .hidden{display:none !important}
 
-/* Zwevend “Inzet”-menu (rechtsboven, onder status-dot) */
-.rules-dropdown{
+/* Zwevend hoekblok: muziek (links) + inzet (rechts), onder status-dot */
+.appFloatingMenus{
   position:absolute;
   top:calc(76px + max(env(safe-area-inset-top, 0px), 0px));
   right:max(16px, env(safe-area-inset-right, 0px));
   z-index:100;
+  display:flex;
+  flex-direction:row-reverse;
+  align-items:flex-start;
+  gap:10px;
+}
+.rules-dropdown,
+.music-player{
+  position:relative;
   display:flex;
   flex-direction:column;
   align-items:flex-end;
@@ -221,6 +229,48 @@ button:active:not(:disabled){
   font-size:0.75rem;
   color:rgba(148,163,184,0.55);
   margin-top:4px !important;
+}
+
+.music-trackName{
+  display:block;
+  font-size:0.88rem;
+  font-weight:600;
+  color:rgba(226,232,240,0.95);
+  margin-bottom:10px;
+  max-width:220px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.player-btns{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:12px;
+}
+.musicCtrlBtn{
+  flex:0 0 auto;
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:12px;
+  padding:6px 10px;
+  font-size:15px;
+  line-height:1;
+  background:rgba(0,0,0,0.35);
+  color:#fff;
+  cursor:pointer;
+  transition:background 0.15s ease, border-color 0.15s ease;
+}
+.musicCtrlBtn:hover{
+  background:rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.22);
+}
+#volume-slider{
+  width:100%;
+  max-width:220px;
+  margin-top:2px;
+  accent-color:#a855f7;
 }
 
 .card{

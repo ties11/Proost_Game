@@ -16,6 +16,13 @@ const els = {
   stakesBadgeCountdownText: document.getElementById("stakes-badge-countdown-text"),
   rulesToggle: document.getElementById("rules-toggle"),
   rulesContent: document.getElementById("rules-content"),
+  musicToggle: document.getElementById("music-toggle"),
+  musicControls: document.getElementById("music-controls"),
+  trackName: document.getElementById("track-name"),
+  prevTrack: document.getElementById("prev-track"),
+  playPause: document.getElementById("play-pause"),
+  nextTrack: document.getElementById("next-track"),
+  volumeSlider: document.getElementById("volume-slider"),
   roomPill: document.getElementById("roomPill"),
   playersList: document.getElementById("playersList"),
   opdrachtText: document.getElementById("opdrachtText"),
@@ -792,13 +799,142 @@ if (typeof MutationObserver !== "undefined" && els.nextBtn && els.hostNextDock) 
 }
 syncHostNextDock();
 
+function closeRulesFloatingMenu() {
+  els.rulesContent?.classList.add("hidden");
+  els.rulesToggle?.setAttribute("aria-expanded", "false");
+}
+function closeMusicFloatingMenu() {
+  els.musicControls?.classList.add("hidden");
+  els.musicToggle?.setAttribute("aria-expanded", "false");
+}
+
 if (els.rulesToggle && els.rulesContent) {
   els.rulesToggle.addEventListener("click", () => {
+    closeMusicFloatingMenu();
     els.rulesContent.classList.toggle("hidden");
     const open = !els.rulesContent.classList.contains("hidden");
     els.rulesToggle.setAttribute("aria-expanded", open ? "true" : "false");
   });
 }
+
+if (els.musicToggle && els.musicControls) {
+  els.musicToggle.addEventListener("click", () => {
+    closeRulesFloatingMenu();
+    els.musicControls.classList.toggle("hidden");
+    const open = !els.musicControls.classList.contains("hidden");
+    els.musicToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
+
+/** Playlist (bestanden in /public). Track4 als mp4 voor audiobrowser-ondersteuning. */
+const MUSIC_PLAYLIST = ["Track1.mp3", "Track2.mp3", "Track3.mp3", "Track4.mp4"];
+
+let musicAudio = null;
+try {
+  musicAudio = new Audio();
+  musicAudio.preload = "auto";
+} catch (_) {
+  musicAudio = null;
+}
+
+let musicTrackIndex = 0;
+/** Na klik op Join of Play mag de browser audio starten (autoplay-policy). */
+let musicPlaybackUnlocked = false;
+
+function unlockMusicPlayback() {
+  musicPlaybackUnlocked = true;
+}
+
+function musicFileUrl(filename) {
+  return `${window.location.origin}/${encodeURIComponent(filename)}`;
+}
+
+function setPlayPauseButtonUi(playing) {
+  if (!els.playPause) return;
+  els.playPause.textContent = playing ? "⏸️" : "▶️";
+  els.playPause.setAttribute("aria-label", playing ? "Pauze" : "Afspelen");
+}
+
+function updateTrackNameLabel() {
+  if (!els.trackName) return;
+  els.trackName.textContent = MUSIC_PLAYLIST[musicTrackIndex] || "Geen muziek";
+}
+
+function loadMusicTrack(index) {
+  if (!musicAudio || MUSIC_PLAYLIST.length === 0) return;
+  musicTrackIndex =
+    ((index % MUSIC_PLAYLIST.length) + MUSIC_PLAYLIST.length) % MUSIC_PLAYLIST.length;
+  const file = MUSIC_PLAYLIST[musicTrackIndex];
+  musicAudio.src = musicFileUrl(file);
+  updateTrackNameLabel();
+  musicAudio.load();
+}
+
+function initMusicPlayer() {
+  if (!musicAudio) return;
+  musicAudio.addEventListener("play", () => setPlayPauseButtonUi(true));
+  musicAudio.addEventListener("pause", () => setPlayPauseButtonUi(false));
+  musicAudio.addEventListener("ended", () => {
+    loadMusicTrack(musicTrackIndex + 1);
+    if (musicPlaybackUnlocked) {
+      musicAudio.play().catch(() => setPlayPauseButtonUi(false));
+    }
+  });
+  updateTrackNameLabel();
+}
+initMusicPlayer();
+
+if (els.volumeSlider && musicAudio) {
+  musicAudio.volume = Number(els.volumeSlider.value) || 0.5;
+  els.volumeSlider.addEventListener("input", () => {
+    const v = Number(els.volumeSlider.value);
+    musicAudio.volume = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
+  });
+}
+
+if (els.playPause) {
+  els.playPause.addEventListener("click", async () => {
+    unlockMusicPlayback();
+    if (!musicAudio) return;
+    if (!musicAudio.src) {
+      loadMusicTrack(musicTrackIndex);
+    }
+    try {
+      if (musicAudio.paused) {
+        await musicAudio.play();
+      } else {
+        musicAudio.pause();
+      }
+      setPlayPauseButtonUi(!musicAudio.paused);
+    } catch {
+      setPlayPauseButtonUi(false);
+    }
+  });
+}
+
+els.prevTrack?.addEventListener("click", () => {
+  unlockMusicPlayback();
+  if (!musicAudio || MUSIC_PLAYLIST.length === 0) return;
+  const wasPlaying = !musicAudio.paused && !!musicAudio.src;
+  loadMusicTrack(musicTrackIndex - 1);
+  if (wasPlaying && musicPlaybackUnlocked) {
+    musicAudio.play().catch(() => setPlayPauseButtonUi(false));
+  } else {
+    setPlayPauseButtonUi(false);
+  }
+});
+
+els.nextTrack?.addEventListener("click", () => {
+  unlockMusicPlayback();
+  if (!musicAudio || MUSIC_PLAYLIST.length === 0) return;
+  const wasPlaying = !musicAudio.paused && !!musicAudio.src;
+  loadMusicTrack(musicTrackIndex + 1);
+  if (wasPlaying && musicPlaybackUnlocked) {
+    musicAudio.play().catch(() => setPlayPauseButtonUi(false));
+  } else {
+    setPlayPauseButtonUi(false);
+  }
+});
 
 socket.on("connect", () => {
   setConnectionStatus("live");
@@ -1818,6 +1954,7 @@ socket.on("startKingNaming", ({ content } = {}) => {
 });
 
 function join() {
+  unlockMusicPlayback();
   setError(els.loginError, "");
 
   const roomCode = normalizeRoomCode(els.roomCodeInput.value);
