@@ -8,7 +8,7 @@
     />
     <title>Proost!</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Poppins:wght@400;600;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./style.css" />
@@ -17,19 +17,43 @@
     <main class="app">
       <header class="topbar">
         <div class="brand">
-          <div class="logo" aria-hidden="true">P</div>
+          <div class="logo" aria-hidden="true">🍻</div>
           <div class="brandText">
             <div class="title">Proost!</div>
             <div class="subtitle">Multiplayer party game</div>
           </div>
         </div>
-        <div class="status" id="statusText">Niet verbonden</div>
+        <div
+          class="connectionStatus"
+          id="connectionStatus"
+          role="status"
+          aria-live="polite"
+          aria-label="Bezig met verbinden"
+        >
+          <span class="statusLiveDot" id="statusLiveDot" aria-hidden="true"></span>
+        </div>
       </header>
+
+      <div class="rules-dropdown">
+        <button
+          type="button"
+          id="rules-toggle"
+          class="rules-btn"
+          aria-expanded="false"
+          aria-controls="rules-content"
+        >
+          ℹ️ Inzet
+        </button>
+        <div id="rules-content" class="rules-menu hidden" role="region" aria-label="Inzet uitleg">
+          <p><strong>Dilemma:</strong> 2 slokken</p>
+          <p><strong>Minigame:</strong> 5 (uitdelen)</p>
+          <p class="easter-egg">Wie dit leest trekt een bak</p>
+        </div>
+      </div>
 
       <section id="loginScreen" class="screen">
         <div class="card">
-          <h1 class="h1">Proost!</h1>
-          <p class="muted">Voer een kamercode in en join je vrienden.</p>
+          <p class="muted joinLead">Voer je kamercode in en sluit aan bij je vrienden.</p>
 
           <label class="field">
             <span class="label">Kamercode</span>
@@ -76,13 +100,17 @@
 
           <div class="gameMiddleLayer">
             <div id="current-card" class="gameCurrentCard">
-              <div class="stakesBadgeRow" aria-hidden="false">
-                <span id="stakes-badge" class="stakes-badge hidden" aria-live="polite">
-                  <span class="stakes-badge__icon" aria-hidden="true">🍺</span>
-                  <span id="stakes-badge-text" class="stakes-badge__text"></span>
-                </span>
-              </div>
               <div id="card-section" class="opdrachtCard">
+                <div id="host-lobby" class="hostLobby hidden" aria-labelledby="hostLobbyTitle">
+                  <div class="hostLobbyTop">
+                    <span class="hostLobbyBadge">Lobby</span>
+                    <span class="pill hostLobbyRoomPill" id="hostLobbyRoomPill">—</span>
+                  </div>
+                  <h2 class="hostLobbyTitle" id="hostLobbyTitle">Iedereen erbij?</h2>
+                  <p class="hostLobbyLead">Dezelfde kamercode delen — dan verschijnen ze hier vanzelf.</p>
+                  <div id="lobbyPlayers" class="lobbyPlayers" role="list" aria-label="Spelers in de kamer"></div>
+                  <p class="hostLobbyHint">Wacht tot iedereen er is, en start het spel!</p>
+                </div>
                 <div id="opdrachtText" class="opdrachtText">Verbinden…</div>
                 <div
                   id="pollResultWrap"
@@ -303,9 +331,9 @@
 
         <div id="countdown-overlay" class="countdownOverlay" aria-hidden="true">
           <div class="countdownOverlayInner">
-            <span id="stakes-badge-countdown" class="stakes-badge stakes-badge--overlay hidden" aria-live="polite">
-              <span class="stakes-badge__icon" aria-hidden="true">🍺</span>
-              <span id="stakes-badge-countdown-text" class="stakes-badge__text"></span>
+            <span id="stakes-badge-countdown" class="countdownStakes hidden" aria-live="polite">
+              <span class="countdownStakes__icon" aria-hidden="true">🍺</span>
+              <span id="stakes-badge-countdown-text" class="countdownStakes__text"></span>
             </span>
             <p id="countdown-preamble" class="countdownPreamble">Maak je klaar voor…</p>
             <div id="countdown-title" class="countdownGameTitle" aria-live="polite"></div>

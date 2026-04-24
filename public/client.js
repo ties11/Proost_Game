@@ -1,5 +1,6 @@
 const els = {
-  statusText: document.getElementById("statusText"),
+  connectionStatus: document.getElementById("connectionStatus"),
+  statusLiveDot: document.getElementById("statusLiveDot"),
 
   loginScreen: document.getElementById("loginScreen"),
   gameScreen: document.getElementById("gameScreen"),
@@ -11,13 +12,16 @@ const els = {
 
   cardSection: document.getElementById("card-section"),
   currentCard: document.getElementById("current-card"),
-  stakesBadge: document.getElementById("stakes-badge"),
-  stakesBadgeText: document.getElementById("stakes-badge-text"),
   stakesBadgeCountdown: document.getElementById("stakes-badge-countdown"),
   stakesBadgeCountdownText: document.getElementById("stakes-badge-countdown-text"),
+  rulesToggle: document.getElementById("rules-toggle"),
+  rulesContent: document.getElementById("rules-content"),
   roomPill: document.getElementById("roomPill"),
   playersList: document.getElementById("playersList"),
   opdrachtText: document.getElementById("opdrachtText"),
+  hostLobby: document.getElementById("host-lobby"),
+  lobbyPlayers: document.getElementById("lobbyPlayers"),
+  hostLobbyRoomPill: document.getElementById("hostLobbyRoomPill"),
   pollResultWrap: document.getElementById("pollResultWrap"),
   nextBtn: document.getElementById("nextBtn"),
   gameError: document.getElementById("gameError"),
@@ -108,6 +112,81 @@ const els = {
   leaderboardModalClose: document.getElementById("leaderboard-modal-close"),
 };
 
+const state = {
+  hostId: null,
+  isHost: false,
+  currentStakesText: "",
+  showingHostLobby: false,
+};
+
+/** Topbar: dot i.p.v. technische verbindingsstatus. */
+function setConnectionStatus(mode) {
+  const wrap = els.connectionStatus;
+  const dot = els.statusLiveDot;
+  if (!wrap || !dot) return;
+  dot.classList.remove(
+    "statusLiveDot--connecting",
+    "statusLiveDot--live",
+    "statusLiveDot--offline",
+  );
+  if (mode === "connecting") {
+    dot.classList.add("statusLiveDot--connecting");
+    wrap.setAttribute("aria-label", "Bezig met verbinden");
+  } else if (mode === "live") {
+    dot.classList.add("statusLiveDot--live");
+    wrap.setAttribute("aria-label", "Live verbonden");
+  } else {
+    dot.classList.add("statusLiveDot--offline");
+    wrap.setAttribute("aria-label", "Niet verbonden");
+  }
+}
+
+function showHostLobby() {
+  state.showingHostLobby = true;
+  els.hostLobby?.classList.remove("hidden");
+  els.opdrachtText?.classList.add("hidden");
+}
+
+function hideHostLobby() {
+  if (!state.showingHostLobby) return;
+  state.showingHostLobby = false;
+  els.hostLobby?.classList.add("hidden");
+  els.opdrachtText?.classList.remove("hidden");
+}
+
+/** Opnieuw triggeren: slide-in op #current-card (nieuwe kaart / stem / dilemma). */
+function triggerCurrentCardSlideIn() {
+  const el = els.currentCard;
+  if (!el) return;
+  el.classList.remove("gameCurrentCard--slideIn");
+  void el.offsetWidth;
+  el.classList.add("gameCurrentCard--slideIn");
+}
+
+function renderLobbyPlayers(players) {
+  const root = els.lobbyPlayers;
+  if (!root) return;
+  root.replaceChildren();
+  const list = Array.isArray(players) ? players : [];
+  for (const p of list) {
+    const tag = document.createElement("span");
+    tag.className = "lobbyPlayerTag";
+    tag.setAttribute("role", "listitem");
+    const name = document.createElement("span");
+    name.className = "lobbyPlayerTagName";
+    name.textContent = p.name || "Naamloos";
+    tag.appendChild(name);
+    if (state.hostId && p.id === state.hostId) {
+      const hostEl = document.createElement("span");
+      hostEl.className = "lobbyPlayerTagHost";
+      hostEl.textContent = "host";
+      hostEl.setAttribute("aria-label", "Host van de kamer");
+      tag.appendChild(hostEl);
+    }
+    root.appendChild(tag);
+  }
+}
+
 function isLeaderboardModalOpen() {
   const m = els.leaderboardModal;
   if (!m) return false;
@@ -147,11 +226,19 @@ function setScreen(screen) {
   const isLogin = screen === "login";
   els.loginScreen.classList.toggle("hidden", !isLogin);
   els.gameScreen.classList.toggle("hidden", isLogin);
-  if (isLogin) closeLeaderboardModal();
+  if (isLogin) {
+    closeLeaderboardModal();
+    state.showingHostLobby = false;
+    els.hostLobby?.classList.add("hidden");
+    els.opdrachtText?.classList.remove("hidden");
+  }
 }
 
 function showGameMode(mode) {
   // mode: "card" | "vote" | "reaction" | "fast" | "stopwatch" | "tug" | "hl" | "spotOdd" | "redLight" | "simonSays" | "auction"
+  if (mode !== "card") {
+    hideHostLobby();
+  }
   els.cardSection.classList.toggle("hidden", mode !== "card");
   els.votingSection.classList.toggle("hidden", mode !== "vote");
   els.reactionSection.classList.toggle("hidden", mode !== "reaction");
@@ -250,21 +337,10 @@ function setCountdownStakesVisible(show) {
   }
 }
 
-/** Zet inzet-label (hoofdscherm + optioneel countdown-overlay). */
+/** Bewaar server-inzettekst voor countdown-overlay (geen kaart-badge meer). */
 function applyStakesText(raw) {
   const t = String(raw || "").trim();
   state.currentStakesText = t;
-  const card = els.stakesBadge;
-  const cardLabel = els.stakesBadgeText;
-  if (card && cardLabel) {
-    if (t) {
-      cardLabel.textContent = t;
-      card.classList.remove("hidden");
-    } else {
-      cardLabel.textContent = "";
-      card.classList.add("hidden");
-    }
-  }
   if (els.countdownOverlay?.classList.contains("countdownOverlay--visible")) {
     setCountdownStakesVisible(true);
   }
@@ -336,6 +412,7 @@ function applyStakesFromPayload(payload = {}) {
 }
 
 function setPlainOpdrachtWithFade(text) {
+  hideHostLobby();
   clearPollResultCard();
   if (!els.opdrachtText) return;
   els.opdrachtText.textContent = text;
@@ -387,7 +464,7 @@ function renderDilemmaResultsInCard(payload = {}) {
   title.textContent = "De uitslag!";
 
   const q = document.createElement("p");
-  q.className = "pollResultQuestion muted";
+  q.className = "pollResultQuestion pollResultQuestion--dilemma";
   q.textContent = question || "Zou je liever…";
 
   const optionsEl = document.createElement("div");
@@ -426,6 +503,7 @@ function renderDilemmaResultsInCard(payload = {}) {
   root.append(title, q, optionsEl);
   els.pollResultWrap.appendChild(root);
   fadePollWrap();
+  triggerCurrentCardSlideIn();
 }
 
 function renderVoteResultsInCard(payload = {}) {
@@ -526,12 +604,18 @@ function renderPlayers(players) {
   }
   previousSipsById = nextSipsById;
 
-  // "In de kamer" chips (namen)
-  els.playersList.innerHTML = "";
-  for (const p of sorted) {
-    const li = document.createElement("li");
-    li.textContent = p.name;
-    els.playersList.appendChild(li);
+  // "In de kamer" chips (namen) — scores-modal
+  if (els.playersList) {
+    els.playersList.innerHTML = "";
+    for (const p of sorted) {
+      const li = document.createElement("li");
+      li.textContent = p.name;
+      els.playersList.appendChild(li);
+    }
+  }
+
+  if (state.isHost && state.showingHostLobby) {
+    renderLobbyPlayers(list);
   }
 
   // Leaderboard in #leaderboard-modal (lijst blijft sync, modal mag dicht zijn)
@@ -692,20 +776,13 @@ function launchConfetti() {
 
 setScreen("login");
 showGameMode("card");
-els.statusText.textContent = "Verbinden…";
+setConnectionStatus("connecting");
 
 // Socket.io verbinding
 const socket = io();
 
-const state = {
-  hostId: null,
-  isHost: false,
-  currentStakesText: "",
-};
-
-const WELCOME_HOST =
-  "Jij bent de host! Klik onderaan op 'Volgende Kaart' om te beginnen.";
-const WELCOME_NON_HOST = "Wachten tot de host de eerste kaart trekt…";
+const WELCOME_NON_HOST =
+  "Zodra de host start, verschijnt hier de eerste kaart — even geduld!";
 
 if (typeof MutationObserver !== "undefined" && els.nextBtn && els.hostNextDock) {
   new MutationObserver(() => syncHostNextDock()).observe(els.nextBtn, {
@@ -715,13 +792,20 @@ if (typeof MutationObserver !== "undefined" && els.nextBtn && els.hostNextDock) 
 }
 syncHostNextDock();
 
+if (els.rulesToggle && els.rulesContent) {
+  els.rulesToggle.addEventListener("click", () => {
+    els.rulesContent.classList.toggle("hidden");
+    const open = !els.rulesContent.classList.contains("hidden");
+    els.rulesToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
+
 socket.on("connect", () => {
-  els.statusText.textContent = "Verbonden";
-  // host status will be computed when updatePlayers arrives
+  setConnectionStatus("live");
 });
 
 socket.on("disconnect", () => {
-  els.statusText.textContent = "Verbinding kwijt";
+  setConnectionStatus("offline");
 });
 
 socket.on("errorMessage", ({ message } = {}) => {
@@ -736,7 +820,9 @@ socket.on("joinedRoom", ({ roomCode, hostId } = {}) => {
   applyStakesText("");
   abortMinigameCountdownDisplay();
   closeLeaderboardModal();
-  els.roomPill.textContent = roomCode || "—";
+  const code = roomCode || "—";
+  els.roomPill.textContent = code;
+  if (els.hostLobbyRoomPill) els.hostLobbyRoomPill.textContent = code;
   setError(els.loginError, "");
   setError(els.gameError, "");
   els.voteStatus.textContent = "";
@@ -748,26 +834,31 @@ socket.on("joinedRoom", ({ roomCode, hostId } = {}) => {
   setScreen("game");
 
   const isHostPlayer = !!hostId && socket.id === hostId;
-  if (els.opdrachtText) {
-    setPlainOpdrachtWithFade(isHostPlayer ? WELCOME_HOST : WELCOME_NON_HOST);
+  if (isHostPlayer) {
+    showHostLobby();
+  } else if (els.opdrachtText) {
+    setPlainOpdrachtWithFade(WELCOME_NON_HOST);
   }
 });
 
 // Server stuurt updates met huidige spelerslijst
 socket.on("updatePlayers", ({ roomCode, players, hostId } = {}) => {
-  if (roomCode) els.roomPill.textContent = roomCode;
+  if (roomCode) {
+    els.roomPill.textContent = roomCode;
+    if (els.hostLobbyRoomPill) els.hostLobbyRoomPill.textContent = roomCode;
+  }
   state.hostId = hostId || null;
   state.isHost = !!state.hostId && socket.id === state.hostId;
-  renderPlayers(players);
-  syncHostNextDock();
-  // Fallback als joinedRoom geen hostId had (oude server): welkomst voor host alsnog goed zetten
   if (
     state.isHost &&
+    els.hostLobby?.classList.contains("hidden") &&
     els.opdrachtText &&
     els.opdrachtText.textContent === WELCOME_NON_HOST
   ) {
-    setPlainOpdrachtWithFade(WELCOME_HOST);
+    showHostLobby();
   }
+  renderPlayers(players);
+  syncHostNextDock();
 });
 
 // Server stuurt nieuwe kaart/opdracht
@@ -780,6 +871,7 @@ socket.on("newCard", ({ opdracht, type, stakesText } = {}) => {
   els.nextBtn.classList.remove("hidden");
   applyStakesFromPayload({ stakesText });
   setPlainOpdrachtWithFade(opdracht);
+  triggerCurrentCardSlideIn();
 });
 
 socket.on("startVoting", ({ question, players, stakesText } = {}) => {
@@ -791,6 +883,7 @@ socket.on("startVoting", ({ question, players, stakesText } = {}) => {
     els.voteStatus.textContent = "";
 
     els.voteQuestion.textContent = question || "Stem!";
+    els.voteQuestion.classList.remove("minigameQuestion--dilemma");
     els.voteButtons.innerHTML = "";
 
     const list = Array.isArray(players) ? players : [];
@@ -806,6 +899,7 @@ socket.on("startVoting", ({ question, players, stakesText } = {}) => {
       });
       els.voteButtons.appendChild(btn);
     }
+    triggerCurrentCardSlideIn();
   });
 });
 
@@ -834,10 +928,11 @@ socket.on("startDilemma", ({ question, optionA, optionB, stakesText } = {}) => {
     els.voteStatus.textContent = "";
 
     els.voteQuestion.textContent = question || "Zou je liever...";
+    els.voteQuestion.classList.add("minigameQuestion--dilemma");
     els.voteButtons.innerHTML = "";
 
     const btnA = document.createElement("button");
-    btnA.className = "voteBtn";
+    btnA.className = "voteBtn voteBtn--dilemma voteBtn--dilemmaA";
     btnA.type = "button";
     btnA.textContent = `A: ${optionA || ""}`.trim();
     btnA.addEventListener("click", () => {
@@ -847,7 +942,7 @@ socket.on("startDilemma", ({ question, optionA, optionB, stakesText } = {}) => {
     });
 
     const btnB = document.createElement("button");
-    btnB.className = "voteBtn";
+    btnB.className = "voteBtn voteBtn--dilemma voteBtn--dilemmaB";
     btnB.type = "button";
     btnB.textContent = `B: ${optionB || ""}`.trim();
     btnB.addEventListener("click", () => {
@@ -858,6 +953,7 @@ socket.on("startDilemma", ({ question, optionA, optionB, stakesText } = {}) => {
 
     els.voteButtons.appendChild(btnA);
     els.voteButtons.appendChild(btnB);
+    triggerCurrentCardSlideIn();
   });
 });
 
