@@ -2,7 +2,10 @@
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Proost!</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
@@ -53,41 +56,36 @@
         </div>
       </section>
 
-      <section id="gameScreen" class="screen hidden">
-        <div class="gameWrap">
-          <section id="king-status" class="kingStatus" aria-live="polite">
-            <div class="kingRow">
-              <div class="kingLabel">Koning</div>
-              <div class="kingValue" id="kingName">—</div>
-            </div>
-            <div class="kingRule">
-              <div class="kingLabel">Huidige Regel</div>
-              <div class="kingRuleText" id="kingRule">Geen</div>
-            </div>
-          </section>
-
-          <details id="leaderboard" class="leaderboard" open>
-            <summary class="leaderboardSummary">
-              <span class="leaderboardTitle">Ranglijst</span>
-              <span class="leaderboardHint">Koning van de avond 👑</span>
-            </summary>
-            <ol id="leaderboardList" class="leaderboardList"></ol>
-          </details>
-
-          <div class="playersCard">
-            <div class="playersHeader">
-              <div class="playersTitle">In de kamer</div>
-              <div class="pill" id="roomPill">—</div>
-            </div>
-            <ul id="playersList" class="playersList"></ul>
+      <section id="gameScreen" class="screen gameScreen hidden">
+        <div class="gameShell">
+          <div class="gameTopLayer">
+            <section
+              id="king-status"
+              class="kingStatus kingStatusBar hidden"
+              aria-live="polite"
+            >
+              <p class="kingStatusLine" id="kingStatusLine">
+                👑 Koning —: Geen
+              </p>
+            </section>
           </div>
 
-          <div id="card-section" class="opdrachtCard">
-            <div class="opdrachtLabel">Huidige Opdracht</div>
-            <div id="opdrachtText" class="opdrachtText">
-              Klik op “Volgende Kaart” om te beginnen.
-            </div>
-          </div>
+          <div class="gameMiddleLayer">
+            <div id="current-card" class="gameCurrentCard">
+              <div class="stakesBadgeRow" aria-hidden="false">
+                <span id="stakes-badge" class="stakes-badge hidden" aria-live="polite">
+                  <span class="stakes-badge__icon" aria-hidden="true">🍺</span>
+                  <span id="stakes-badge-text" class="stakes-badge__text"></span>
+                </span>
+              </div>
+              <div id="card-section" class="opdrachtCard">
+                <div id="opdrachtText" class="opdrachtText">Verbinden…</div>
+                <div
+                  id="pollResultWrap"
+                  class="pollResultWrap hidden"
+                  aria-live="polite"
+                ></div>
+              </div>
 
           <div id="voting-section" class="minigame hidden">
             <div class="minigameCard">
@@ -120,22 +118,228 @@
           <div id="stopwatch-section" class="minigame hidden stopwatchWrap">
             <div class="stopwatchCard">
               <div class="stopwatchTitle">STOPWATCH</div>
-              <div id="stopwatchTarget" class="stopwatchSub">Doel: 8.00s</div>
+              <div id="stopwatchTarget" class="stopwatchSub">Doel: —</div>
               <div id="stopwatchDisplay" class="stopwatchDisplay">0.00</div>
               <button id="stopwatchBtn" class="stopwatchBtn">STOP</button>
               <div id="stopwatchStatus" class="muted small"></div>
             </div>
           </div>
 
-          <button id="nextBtn" class="btn btnNeon btnHuge">Volgende Kaart</button>
+          <div id="tug-of-war-section" class="minigame hidden tugWrap">
+            <div class="tugCard">
+              <div class="tugTitle">TOUWETREKKEN</div>
+              <p id="tugContent" class="tugContent muted"></p>
+              <div class="tugBar" role="presentation">
+                <div id="tugBarRed" class="tugBarRed"></div>
+                <div id="tugBarBlue" class="tugBarBlue"></div>
+              </div>
+              <div class="tugScores">
+                <span class="tugScoreLabel">Rood</span>
+                <span id="tugScoreRed" class="tugScoreNum">50</span>
+                <span class="tugScoreSep">—</span>
+                <span id="tugScoreBlue" class="tugScoreNum">50</span>
+                <span class="tugScoreLabel">Blauw</span>
+              </div>
+              <button id="tugBtn" class="tugBtn" type="button">RAM!</button>
+              <div id="tugStatus" class="muted small"></div>
+            </div>
+          </div>
 
-          <div id="gameError" class="error" role="alert" aria-live="polite"></div>
+          <div id="higher-lower-section" class="minigame hidden hlWrap">
+            <div class="hlCard">
+              <div class="hlTitle">HOGER OF LAGER</div>
+              <p id="hlContent" class="hlIntro muted"></p>
+              <div class="hlNumberWrap">
+                <div class="hlNumberLabel">Startgetal</div>
+                <div id="hlBigNumber" class="hlBigNumber" aria-live="polite">?</div>
+              </div>
+              <div id="hlOutcome" class="hlOutcome hidden" aria-live="polite"></div>
+              <div class="hlBtnRow">
+                <button id="hlHigherBtn" type="button" class="hlBtn hlBtnUp">⬆️ HOGER</button>
+                <button id="hlLowerBtn" type="button" class="hlBtn hlBtnDown">⬇️ LAGER</button>
+              </div>
+              <div id="hlHlStatus" class="muted small"></div>
+            </div>
+          </div>
+
+          <div id="spot-odd-section" class="minigame hidden spotOddWrap">
+            <div class="spotOddCard">
+              <div class="spotOddTitle">SPOT THE ODD</div>
+              <p id="spotOddIntro" class="spotOddIntro muted"></p>
+              <div id="spotOddGrid" class="spotOddGrid" role="group" aria-label="Emoji raster"></div>
+              <div id="spotOddOutcome" class="spotOddOutcome hidden" aria-live="polite"></div>
+              <div id="spotOddBlock" class="spotOddBlock hidden" aria-hidden="true">
+                <div id="spotOddBlockInner" class="spotOddBlockInner">Fout!</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="red-light-section" class="minigame hidden redLightWrap redLightSection--wait">
+            <div class="redLightCard">
+              <div class="redLightTitle">ROOD LICHT, GROEN LICHT</div>
+              <p id="redLightIntro" class="redLightIntro muted"></p>
+              <div id="redLightStage" class="redLightStage" aria-live="polite">
+                <div id="redLightStatus" class="redLightStatus">Wacht op groen…</div>
+                <button id="redLightBtn" type="button" class="redLightBtn" disabled>
+                  Tik!
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="simon-says-section" class="minigame hidden simonWrap">
+            <div class="simonCard">
+              <div class="simonTitle">SIMON SAYS</div>
+              <p id="simonIntro" class="simonIntro muted"></p>
+              <p class="simonGridLabel muted small">
+                Volg de kleuren in de volgorde die op de knoppen wordt getoond.
+              </p>
+              <div
+                id="simonBtnGrid"
+                class="simonBtnGrid"
+                role="group"
+                aria-label="Simon kleuren"
+              >
+                <button
+                  type="button"
+                  class="simonColorBtn simonColorBtn--red"
+                  data-simon="red"
+                  aria-label="Rood"
+                >
+                  Rood
+                </button>
+                <button
+                  type="button"
+                  class="simonColorBtn simonColorBtn--blue"
+                  data-simon="blue"
+                  aria-label="Blauw"
+                >
+                  Blauw
+                </button>
+                <button
+                  type="button"
+                  class="simonColorBtn simonColorBtn--green"
+                  data-simon="green"
+                  aria-label="Groen"
+                >
+                  Groen
+                </button>
+                <button
+                  type="button"
+                  class="simonColorBtn simonColorBtn--yellow"
+                  data-simon="yellow"
+                  aria-label="Geel"
+                >
+                  Geel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="auction-section" class="minigame hidden auctionWrap">
+            <div id="auctionCard" class="auctionCard">
+              <div class="auctionCardInner">
+                <p class="auctionKicker">De Slokken-Veiling</p>
+                <p id="auction-prize" class="auctionPrize" aria-live="polite">—</p>
+                <p class="auctionTagline">Bied slokken om dit item te mogen uitdelen.</p>
+                <div class="auctionTimerBlock" aria-live="polite">
+                  <span id="auction-timer" class="auctionTimer">20</span>
+                  <span class="auctionTimerSuffix">s</span>
+                </div>
+                <div class="auctionHighBlock">
+                  <div class="auctionHighLabel">Hoogste bod</div>
+                  <div id="auction-high-value" class="auctionHighValue">—</div>
+                  <div id="auction-high-leader" class="auctionHighLeader"></div>
+                </div>
+                <p id="auctionTurn" class="auctionTurnLine"></p>
+                <div id="auctionBidRow" class="auctionBidRow hidden">
+                  <div class="auctionBidStack">
+                    <button
+                      id="auctionPlusOneBtn"
+                      type="button"
+                      class="btn auctionPlusOneBtn"
+                      disabled
+                    >
+                      Bied +1 Slok
+                    </button>
+                    <p class="auctionBidCapHint">Max 2× bieden</p>
+                  </div>
+                  <button id="auctionPassBtn" type="button" class="btn auctionPassBtn">
+                    Pass
+                  </button>
+                </div>
+                <p id="auctionWait" class="auctionWait hidden">Wacht op de volgende speler…</p>
+              </div>
+              <div
+                id="auctionResult"
+                class="auctionResult hidden"
+                role="status"
+                aria-live="assertive"
+              ></div>
+            </div>
+          </div>
+            </div>
+
+            <div id="gameError" class="error" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="gameBottomLayer">
+            <button type="button" id="toggle-scores-btn" class="toggleScoresBtn">
+              🏆 Bekijk Scores
+            </button>
+          </div>
+        </div>
+
+        <div id="host-next-dock" class="hostNextDock hidden" aria-hidden="true">
+          <button id="nextBtn" class="btn btnNeon btnHuge hostNextBtn" type="button">
+            Volgende Kaart
+          </button>
+        </div>
+
+        <div id="countdown-overlay" class="countdownOverlay" aria-hidden="true">
+          <div class="countdownOverlayInner">
+            <span id="stakes-badge-countdown" class="stakes-badge stakes-badge--overlay hidden" aria-live="polite">
+              <span class="stakes-badge__icon" aria-hidden="true">🍺</span>
+              <span id="stakes-badge-countdown-text" class="stakes-badge__text"></span>
+            </span>
+            <p id="countdown-preamble" class="countdownPreamble">Maak je klaar voor…</p>
+            <div id="countdown-title" class="countdownGameTitle" aria-live="polite"></div>
+            <div id="countdown-number" class="countdownNumber" aria-live="assertive">3</div>
+          </div>
         </div>
       </section>
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+    <div
+      id="leaderboard-modal"
+      class="modal leaderboardModal"
+      style="display: none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="leaderboardModalTitle"
+      aria-hidden="true"
+    >
+      <div class="modalCard leaderboardModalCard">
+        <div class="modalTitle" id="leaderboardModalTitle">🏆 Scores en kamer</div>
+        <div class="playersCard playersCard--modal">
+          <div class="playersHeader">
+            <div class="playersTitle">In de kamer</div>
+            <div class="pill" id="roomPill">—</div>
+          </div>
+          <ul id="playersList" class="playersList"></ul>
+        </div>
+        <p class="leaderboardModalHint">Ranglijst — Koning van de avond 👑</p>
+        <div class="leaderboardModalScroll">
+          <ol id="leaderboardList" class="leaderboardList"></ol>
+        </div>
+        <button type="button" class="modalCloseBtn" id="leaderboard-modal-close">
+          Sluiten
+        </button>
+      </div>
+    </div>
 
     <div id="kingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="kingModalTitle">
       <div class="modalCard">
