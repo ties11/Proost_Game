@@ -4,9 +4,13 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Proost!</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -283,17 +287,18 @@
             <div id="gameError" class="error" role="alert" aria-live="polite"></div>
           </div>
 
-          <div class="gameBottomLayer">
-            <button type="button" id="toggle-scores-btn" class="toggleScoresBtn">
-              🏆 Bekijk Scores
-            </button>
+          <div class="gameActionDock">
+            <div class="gameBottomLayer">
+              <button type="button" id="toggle-scores-btn" class="toggleScoresBtn">
+                🏆 Bekijk Scores
+              </button>
+            </div>
+            <div id="host-next-dock" class="hostNextDock hidden" aria-hidden="true">
+              <button id="nextBtn" class="btn btnNeon btnHuge hostNextBtn" type="button">
+                Volgende Kaart
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div id="host-next-dock" class="hostNextDock hidden" aria-hidden="true">
-          <button id="nextBtn" class="btn btnNeon btnHuge hostNextBtn" type="button">
-            Volgende Kaart
-          </button>
         </div>
 
         <div id="countdown-overlay" class="countdownOverlay" aria-hidden="true">
