@@ -175,6 +175,7 @@ const minigameCountdownTimeouts = [];
 let minigameCountdownActive = false;
 let countdownTickInterval = null;
 
+const AUCTION_MAX_BIDS_PER_PLAYER = 10;
 const AUCTION_PLUS_ONE_LABEL = "Bied +1 Slok";
 const AUCTION_LIMIT_LABEL = "Limiet bereikt";
 const AUCTION_NO_BIDS_LINE = "Niemand heeft geboden. De veiling is gesloten.";
@@ -227,7 +228,7 @@ function updateAuctionTurnLine() {
   if (els.auctionTimer) els.auctionTimer.textContent = String(sec);
   if (!els.auctionTurn) return;
   if (auctionUiSnapshot.isMyTurn) {
-    els.auctionTurn.textContent = `Jij · ${auctionUiSnapshot.bidsUsed}/2 bod(en)`;
+    els.auctionTurn.textContent = `Jij · ${auctionUiSnapshot.bidsUsed}/${AUCTION_MAX_BIDS_PER_PLAYER} bod(en)`;
   } else if (auctionUiSnapshot.currentBidderName) {
     els.auctionTurn.textContent = `Beurt: ${auctionUiSnapshot.currentBidderName}`;
   } else {
@@ -1384,8 +1385,35 @@ socket.on("redLightGreen", () => {
   if (els.redLightBtn) els.redLightBtn.classList.add("redLightBtn--go");
 });
 
-socket.on("redLightEarlyPenalty", ({ name } = {}) => {
-  if (name) showToast(`${name}: 3 strafslokken (te vroeg)!`);
+socket.on("redLightWinner", (data = {}) => {
+  const winnerName = String(data?.winnerName || "").trim() || "iemand";
+  redLightPhase = "off";
+
+  els.redLightSection?.classList.remove(
+    "redLightSection--go",
+    "redLightSection--wait",
+    "redLightSection--blink",
+  );
+  if (els.redLightBtn) {
+    els.redLightBtn.disabled = true;
+    els.redLightBtn.classList.remove("redLightBtn--go");
+  }
+
+  showGameMode("card");
+  setPlainOpdrachtWithFade(
+    `🏆 Winnaar ${winnerName} was razendsnel en mag 5 slokken uitdelen!`,
+  );
+
+  if (state.isHost) {
+    els.nextBtn?.classList.remove("hidden");
+    syncHostNextDock();
+  }
+});
+
+socket.on("redLightEarlyPenalty", (payload = {}) => {
+  const { name, message } = payload;
+  if (message) showToast(String(message));
+  else if (name) showToast(`${name}: 5 strafslokken (te vroeg)!`);
 });
 
 els.redLightBtn?.addEventListener("click", () => {
@@ -1573,8 +1601,13 @@ function renderAuctionState(payload = {}) {
   const me = Array.isArray(order) ? order.find((o) => o.id === myId) : null;
   const bidsUsed = Number(me?.bidsUsed) || 0;
   auctionBidClicksLocal = Math.max(auctionBidClicksLocal, bidsUsed);
-  const atBidLimit = auctionBidClicksLocal >= 2 || bidsUsed >= 2;
-  const canPlusOne = isTurn && bidsUsed < 2 && auctionBidClicksLocal < 2;
+  const atBidLimit =
+    auctionBidClicksLocal >= AUCTION_MAX_BIDS_PER_PLAYER ||
+    bidsUsed >= AUCTION_MAX_BIDS_PER_PLAYER;
+  const canPlusOne =
+    isTurn &&
+    bidsUsed < AUCTION_MAX_BIDS_PER_PLAYER &&
+    auctionBidClicksLocal < AUCTION_MAX_BIDS_PER_PLAYER;
   const cur = Array.isArray(order)
     ? order.find((o) => o.id === currentPlayerId)
     : null;
@@ -1649,7 +1682,7 @@ els.auctionPlusOneBtn?.addEventListener("click", () => {
   auctionBidClicksLocal += 1;
   const next = Math.max(1, (Number(auctionLastHigh) || 0) + 1);
   socket.emit("auctionBid", { amount: next });
-  if (auctionBidClicksLocal >= 2 && els.auctionPlusOneBtn) {
+  if (auctionBidClicksLocal >= AUCTION_MAX_BIDS_PER_PLAYER && els.auctionPlusOneBtn) {
     els.auctionPlusOneBtn.disabled = true;
     els.auctionPlusOneBtn.textContent = AUCTION_LIMIT_LABEL;
   }

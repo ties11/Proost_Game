@@ -26,6 +26,7 @@ app.use(express.static("public"));
 //     higherLower: null | { startNumber: number, votes: Map<socketId, "higher" | "lower"> },
 //     spotOdd: null | { oddIndex: number, commonEmoji: string, oddEmoji: string },
 //     reaction: null | { startedAt: number, clicks: Map<playerId, number>, timeout: NodeJS.Timeout },
+//     redLightActive: boolean, // true = groen licht: eerste tik wint
 //     redLight: null | { goEmitted: boolean, waitTimer: NodeJS.Timeout | null, penalized: Set<playerId> },
 //     simonSays: null | { sequence: string[], participants: { id, name }[], completed: Set<id>, failed: Set<id> },
 //     auction: null | { item: string, content: string, order: string[], turnIndex: number, bidsCount: Map<playerId, number>, highestAmount: number, leaderId: null | playerId, leaderName: null | string, endsAt: number, endTimer: NodeJS.Timeout | null },
@@ -48,7 +49,8 @@ const AUCTION_ITEMS = [
   "7 Koprollen, daarna 1 bak",
 ];
 
-const AUCTION_ROUND_MS = 20000;
+const AUCTION_MAX_BIDS_PER_PLAYER = 10;
+const AUCTION_ROUND_MS = 30000;
 
 /** [meest voorkomend, uitzondering] — spot-the-odd */
 const SPOT_ODD_EMOJI_PAIRS = [
@@ -636,6 +638,7 @@ function getRoom(roomCode) {
       spotOdd: null,
       reaction: null,
       redLight: null,
+      redLightActive: false,
       simonSays: null,
       auction: null,
       introCountdownTimer: null,
@@ -749,6 +752,7 @@ function clearSpotOdd(room) {
 function clearRedLight(room) {
   if (room.redLight?.waitTimer) clearTimeout(room.redLight.waitTimer);
   room.redLight = null;
+  room.redLightActive = false;
 }
 
 function clearSimonSays(room) {
@@ -1236,6 +1240,7 @@ io.on("connection", (socket) => {
       scheduleInteractiveCountdown(io, roomCode, room, "red-light", (r, code) => {
         clearRedLight(r);
         const waitMs = 2000 + Math.floor(Math.random() * 6000);
+        r.redLightActive = false;
         r.redLight = {
           goEmitted: false,
           penalized: new Set(),
@@ -1244,6 +1249,7 @@ io.on("connection", (socket) => {
             if (!live?.redLight) return;
             live.redLight.goEmitted = true;
             live.redLight.waitTimer = null;
+            live.redLightActive = true;
             io.to(code).emit("redLightGreen", {});
           }, waitMs),
         };
@@ -1388,12 +1394,25 @@ io.on("connection", (socket) => {
     if (!room || !rl) return;
     const playerId = socket.id;
     if (!room.players.has(playerId)) return;
-    if (rl.goEmitted) return;
-    if (rl.penalized.has(playerId)) return;
-    rl.penalized.add(playerId);
-    const name = room.players.get(playerId)?.name || "iemand";
-    addSips(roomCode, name, 3);
-    io.to(roomCode).emit("redLightEarlyPenalty", { name });
+
+    if (!rl.goEmitted) {
+      if (rl.penalized.has(playerId)) return;
+      rl.penalized.add(playerId);
+      const player = room.players.get(playerId);
+      const name = player?.name || "iemand";
+      addSips(roomCode, name, 5);
+      io.to(roomCode).emit("redLightEarlyPenalty", {
+        name,
+        message: `FOUT! Te vroeg! 5 slokken voor ${name}`,
+      });
+      return;
+    }
+
+    if (room.redLightActive !== true) return;
+    room.redLightActive = false;
+    const player = room.players.get(playerId);
+    io.to(roomCode).emit("redLightWinner", { winnerName: player?.name || "iemand" });
+    clearRedLight(room);
   });
 
   socket.on("simonSaysFail", () => {
@@ -1464,8 +1483,10 @@ io.on("connection", (socket) => {
     }
 
     const used = a.bidsCount.get(pid) || 0;
-    if (used >= 2) {
-      socket.emit("errorMessage", { message: "Je mag maximaal 2 keer bieden." });
+    if (used >= AUCTION_MAX_BIDS_PER_PLAYER) {
+      socket.emit("errorMessage", {
+        message: `Je mag maximaal ${AUCTION_MAX_BIDS_PER_PLAYER} keer bieden.`,
+      });
       return;
     }
 

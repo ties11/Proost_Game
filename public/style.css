@@ -36,6 +36,8 @@ body{
   flex-direction:column;
   gap:12px;
   padding:10px 14px 12px;
+  /* Ruimte voor notch / browserchrome (valt terug op +25px als env ontbreekt) */
+  padding-top:calc(10px + env(safe-area-inset-top, 25px));
   max-width:980px;
   margin:0 auto;
   width:100%;
@@ -1749,7 +1751,12 @@ body{
 }
 
 @media (max-width: 420px){
-  .app{padding:10px 10px 12px;gap:12px}
+  .app{
+    padding:10px 10px 12px;
+    /* Minimaal ~25px extra onder browserbalk als safe-area 0 blijft */
+    padding-top:calc(10px + max(env(safe-area-inset-top, 0px), 15px));
+    gap:12px;
+  }
   .h1{font-size:30px}
   .opdrachtText{padding:28px 18px}
   .pollResultWrap{padding:8px 2px 18px}
